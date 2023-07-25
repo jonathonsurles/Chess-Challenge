@@ -31,61 +31,36 @@ public class MyBot : IChessBot
             return Eval(board);
         }
 
-        if (board.IsWhiteToMove) {
+        int bestEval = board.IsWhiteToMove ? -10_000_000 : 10_000_000;
+        
+        Move[] moves = board.GetLegalMoves();
+        foreach (Move candidate in moves) {
 
-            int bestEval = -10_000_000;
-            Move[] moves = board.GetLegalMoves();
-            foreach (Move candidate in moves) {
+            // Get evaluation of candidate move
+            board.MakeMove(candidate);
+            int candidateEval = AlphaBetaEvaluation(board, depth - 1, alpha, beta);
+            board.UndoMove(candidate);
 
-                // Evaluate the move
-                board.MakeMove(candidate);
-                int candidateEval = AlphaBetaEvaluation(board, depth - 1, alpha, beta);
-                board.UndoMove(candidate);
-
-                // Update best evaluation
-                if (candidateEval > bestEval) {
-                    bestEval = candidateEval;
-                }
-
-                // Prune from beta
-                if (bestEval > beta) {
-                    break;
-                }
-
-                // Update alpha
-                alpha = bestEval > alpha ? bestEval : alpha;
+            // Update best evaluation
+            if (board.IsWhiteToMove ^ candidateEval < bestEval) {
+                bestEval = candidateEval;
             }
 
-            return bestEval;
-
-        } else {
-
-            int bestEval = 10_000_000;
-            Move[] moves = board.GetLegalMoves();
-            foreach (Move candidate in moves) {
-
-                // Evaluate the move
-                board.MakeMove(candidate);
-                int candidateEval = AlphaBetaEvaluation(board, depth - 1, alpha, beta);
-                board.UndoMove(candidate);
-
-                // Update best evaluation
-                if (candidateEval < bestEval) {
-                    bestEval = candidateEval;
-                }
-
-                // Prune from alpha
-                if (bestEval < alpha) {
-                    break;
-                }
-
-                // Update beta
-                beta = bestEval < beta ? bestEval : beta;
+            // Check for pruning
+            if ((board.IsWhiteToMove && bestEval > beta) || (!board.IsWhiteToMove && bestEval < alpha)) {
+                break;
             }
 
-            return bestEval;
-
+            // Update pruning variables
+            if (board.IsWhiteToMove && bestEval > alpha) {
+                alpha = bestEval;
+            } else if (!board.IsWhiteToMove && bestEval < beta) {
+                beta = bestEval;
+            }
         }
+
+        return bestEval;
+
     }
 
     // Heuristic evaluation function
