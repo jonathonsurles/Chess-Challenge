@@ -4,14 +4,18 @@ using static ChessChallenge.Application.ConsoleHelper;
 public class MyBot : IChessBot
 {
 
+    // Go deeper
     public Move Think(Board board, Timer timer)
     {
-        Move[] moves = board.GetLegalMoves();
         Move bestMove = Move.NullMove;
-        int bestEval = -100000;
+        int bestEval = -10_000_000;
         int mult = board.IsWhiteToMove ? 1 : -1;
+        int depth = 3;
+        Move[] moves = board.GetLegalMoves();
         foreach (Move move in moves) {
-            int eval = mult * Eval(board, move);
+            board.MakeMove(move);
+            int eval = mult * AlphaBetaEvaluation(board, depth, -10_000_000, 10_000_000);
+            board.UndoMove(move);
             if (eval > bestEval) {
                 bestMove = move;
                 bestEval = eval;
@@ -20,17 +24,95 @@ public class MyBot : IChessBot
         return bestMove;
     }
 
-    private int Eval(Board board, Move move)
+    private int AlphaBetaEvaluation(Board board, int depth, int alpha, int beta) {
+        
+        // Base case: perform heuristic evaluation
+        if (depth == 0 || board.IsDraw() || board.IsInCheckmate()) {
+            return Eval(board);
+        }
+
+        if (board.IsWhiteToMove) {
+
+            int bestEval = -10_000_000;
+            Move[] moves = board.GetLegalMoves();
+            foreach (Move candidate in moves) {
+
+                // Evaluate the move
+                board.MakeMove(candidate);
+                int candidateEval = AlphaBetaEvaluation(board, depth - 1, alpha, beta);
+                board.UndoMove(candidate);
+
+                // Update best evaluation
+                if (candidateEval > bestEval) {
+                    bestEval = candidateEval;
+                }
+
+                // Prune from beta
+                if (bestEval > beta) {
+                    break;
+                }
+
+                // Update alpha
+                alpha = bestEval > alpha ? bestEval : alpha;
+            }
+
+            return bestEval;
+
+        } else {
+
+            int bestEval = 10_000_000;
+            Move[] moves = board.GetLegalMoves();
+            foreach (Move candidate in moves) {
+
+                // Evaluate the move
+                board.MakeMove(candidate);
+                int candidateEval = AlphaBetaEvaluation(board, depth - 1, alpha, beta);
+                board.UndoMove(candidate);
+
+                // Update best evaluation
+                if (candidateEval < bestEval) {
+                    bestEval = candidateEval;
+                }
+
+                // Prune from alpha
+                if (bestEval < alpha) {
+                    break;
+                }
+
+                // Update beta
+                beta = bestEval < beta ? bestEval : beta;
+            }
+
+            return bestEval;
+
+        }
+    }
+
+    // Heuristic evaluation function
+    // TODO: positional evaluation
+    private int Eval(Board board)
     {  
-        int[] weights = {100, 300, 300, 500, 900, 30000, -100, -300, -300, -500, -900, -30000};
-        int eval = 0;
-        board.MakeMove(move);
+        // Check for end of game
+        int checkmateEval = 1_000_000;
+        if (board.IsInCheckmate()) {
+            if (!board.IsWhiteToMove) {
+                return checkmateEval;
+            } else {
+                return -1 * checkmateEval;
+            }
+        } else if (board.IsDraw()) {
+            return 0;
+        }
+
+        // Get material evaluation
+        int[] weights = {100, 300, 300, 500, 900, 0, -100, -300, -300, -500, -900, 0};
+        int materialEval = 0;
         PieceList[] lists = board.GetAllPieceLists();
         for (int i = 0; i < lists.Length; i++) {
-            eval += weights[i] * lists[i].Count;
+            materialEval += weights[i] * lists[i].Count;
         }
-        board.UndoMove(move);
-        return eval;
+
+        return materialEval;
     }
 
 }
