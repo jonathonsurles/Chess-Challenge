@@ -9,7 +9,7 @@ public class MyBot : IChessBot
     {
         int depth = 4;
         (int eval, Move bestMove) = AlphaBetaEvaluation(board, depth, -10_000_000, 10_000_000, true);
-        Log($"eval: {eval}");
+        // Log($"eval: {eval}");
         return bestMove;
     }
 
