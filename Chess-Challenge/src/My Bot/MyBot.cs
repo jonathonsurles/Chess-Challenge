@@ -27,6 +27,7 @@ public class MyBot : IChessBot
         Move[] moves = GetSortedMoves(board);
         
         // TODO: killer move heuristic
+        // TODO: dynamic depth increase
         foreach (Move candidateMove in moves) {
 
             // Get evaluation of candidate move
@@ -85,6 +86,7 @@ public class MyBot : IChessBot
         foreach (PieceList list in lists) {
             // Material evaluation
             materialEval += weights[(int)list.TypeOfPieceInList] * list.Count * (list.IsWhitePieceList ? 1 : -1);
+            // Positional evaluation
         }
 
         return materialEval;
